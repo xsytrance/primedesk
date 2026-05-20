@@ -17,10 +17,51 @@ let eyeLines = [
 ];
 let lastContextTauntAt = 0;
 
+const OFFICE_LOCATIONS = [
+  {
+    key: 'New York City',
+    icon: '🗽',
+    label: 'New York City',
+    short: 'NYC',
+    blurb: 'Main HQ · finance + media velocity'
+  },
+  {
+    key: 'San Francisco',
+    icon: '🌉',
+    label: 'San Francisco',
+    short: 'SF',
+    blurb: 'Innovation node · product + engineering'
+  },
+  {
+    key: 'Washington DC',
+    icon: '🏛️',
+    label: 'Washington DC',
+    short: 'DC',
+    blurb: 'Policy node · gov + enterprise'
+  }
+];
+
+function getOfficeMeta(name) {
+  return OFFICE_LOCATIONS.find((o) => o.key === name) || OFFICE_LOCATIONS[0];
+}
+
+function renderOfficeStrip() {
+  const el = document.getElementById('officeStrip');
+  if (!el) return;
+  el.innerHTML = OFFICE_LOCATIONS
+    .map((o) => `<span class='office-chip office-${o.short.toLowerCase()}' title='${o.blurb}'>${o.icon} ${o.short}</span>`)
+    .join('');
+}
+
+function officeBadgeHtml(name) {
+  const o = getOfficeMeta(name);
+  return `<span class='pill office-badge office-${o.short.toLowerCase()}' title='${o.blurb}'>${o.icon} ${o.label}</span>`;
+}
+
 function getRivalName() {
   const me = (user?.name || '').toLowerCase();
-  if (me.includes('egi')) return 'Patrick';
-  if (me.includes('patrick')) return 'Egi';
+  if (me.includes('operator1')) return 'Operator2';
+  if (me.includes('operator2')) return 'Operator1';
   return 'your rival';
 }
 
@@ -28,8 +69,8 @@ function refreshEyeLines() {
   const me = user?.name || 'Operator';
   const rival = getRivalName();
   const meLc = String(me).toLowerCase();
-  const isEgi = meLc.includes('egi');
-  const isPatrick = meLc.includes('patrick');
+  const isOperator1 = meLc.includes('operator1');
+  const isOperator2 = meLc.includes('operator2');
   eyeLines = [
     `${me}, ONE DOES NOT SIMPLY LET TICKETS ROT IN THE SHIRE.`,
     `${me}, THE PALANTÍR SEES EVERY STALE UPDATE.`,
@@ -37,14 +78,14 @@ function refreshEyeLines() {
     `${rival} IS HUNTING YOUR XP. OUTPACE THEM.`,
     `${me}, KEEP PRIME DESK CLEAN OR SHADOW CLAIMS THE BOARD.`,
     `ASK BETTER QUESTIONS. CLOSE BETTER TICKETS.`,
-    ...(isEgi ? [
-      `EGI, BE SHARPER THAN PATRICK TODAY. LEAD THE WAR-ROOM.`,
-      `EGI, SHOW YOUR WORK SO PATRICK CAN LEVEL UP FAST.`
+    ...(isOperator1 ? [
+      `OPERATOR1, BE SHARPER THAN OPERATOR2 TODAY. LEAD THE WAR-ROOM.`,
+      `OPERATOR1, SHOW YOUR WORK SO OPERATOR2 CAN LEVEL UP FAST.`
     ] : []),
-    ...(isPatrick ? [
-      `PATRICK, SEEK EGI'S WISDOM. ASK QUESTIONS EARLY, NOT LATE.`,
-      `PATRICK, BRING IDEAS TO PRIME DESK: PROPOSE, TEST, IMPROVE.`,
-      `PATRICK, LEARN THE CRAFT. ASK EGI WHY, NOT JUST WHAT.`
+    ...(isOperator2 ? [
+      `OPERATOR2, SEEK OPERATOR1'S WISDOM. ASK QUESTIONS EARLY, NOT LATE.`,
+      `OPERATOR2, BRING IDEAS TO PRIME DESK: PROPOSE, TEST, IMPROVE.`,
+      `OPERATOR2, LEARN THE CRAFT. ASK OPERATOR1 WHY, NOT JUST WHAT.`
     ] : [])
   ];
 }
@@ -309,7 +350,7 @@ function clearNotif() { notifCount = 0; renderNotif(); }
 
 function setTab(name) {
   activeTab = name;
-  if (['home', 'tickets', 'chat', 'kb'].includes(name)) clearNotif();
+  if (['home', 'tickets', 'laptops', 'chat', 'kb'].includes(name)) clearNotif();
   document.querySelectorAll('.tab').forEach((t) => t.classList.add('hidden'));
   document.getElementById(`tab-${name}`).classList.remove('hidden');
   document.querySelectorAll('.tabs button').forEach((b) => b.classList.remove('active'));
@@ -317,6 +358,7 @@ function setTab(name) {
   if (btn) btn.classList.add('active');
   if (name === 'home') loadHome();
   if (name === 'tickets') loadTickets();
+  if (name === 'laptops') loadLaptops();
   if (name === 'chat') loadChat();
   if (name === 'kb') loadKb();
   if (name === 'xp') loadXp();
@@ -354,6 +396,7 @@ function startApp() {
   document.getElementById('forcePwCard').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   applyActiveThemeFromStore();
+  renderOfficeStrip();
   renderOpsFooter();
   startEyeMotion();
   if (!socket) {
@@ -381,6 +424,9 @@ async function loadHome() {
   document.getElementById('tab-home').innerHTML = `
     <h2>Main Ops Board</h2>
     <div class='hero-sub'>War-room telemetry and operator controls</div>
+    <div class='office-grid'>
+      ${OFFICE_LOCATIONS.map((o) => `<div class='office-panel office-${o.short.toLowerCase()}'><div class='office-icon'>${o.icon}</div><div><b>${o.label}</b><div class='hero-sub'>${o.blurb}</div></div></div>`).join('')}
+    </div>
     <div class='kpis'>
       <div class='pill'>My Open: ${d.myOpen}</div><div class='pill'>All Open: ${d.allOpen}</div>
       <div class='pill ${d.activeLoad > 0 ? 'p1' : 'ok'}'>Active Load: ${d.activeLoad}</div>
@@ -558,6 +604,75 @@ async function loadTickets() {
   document.getElementById('tickets').innerHTML = rows.map((t) => `<div class='ticket'><div><b>${t.ticket_code || 'TKT-????'} — ${t.title}</b></div><div class='row'><span class='pill'>${t.timing || 'later'}</span><span class='pill'>${t.status}</span><select onchange="updateTicketStatus(${t.id}, this.value)">${['Open','In Progress','Pending','Resolved','Closed'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select><button onclick="viewTicket(${t.id})">View</button></div><div id='ticket-detail-${t.id}' class='hidden'></div></div>`).join('');
 }
 async function createTicket() { const title = document.getElementById('title').value.trim(); const timing = document.getElementById('timing').value; if (!title) return; await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title, description: '', timing }) }); document.getElementById('title').value = ''; await loadTickets(); await loadHome(); }
+async function loadLaptops() {
+  const month = document.getElementById('lapMonth')?.value || '';
+  const status = document.getElementById('lapStatusFilter')?.value || '';
+  const params = new URLSearchParams();
+  if (month) params.set('month', month);
+  if (status) params.set('status', status);
+  const rows = await api(`/api/laptops?${params.toString()}`);
+  const grouped = rows.reduce((acc, r) => {
+    const key = r.due_date || 'No due date';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {});
+  const keys = Object.keys(grouped).sort();
+  document.getElementById('laptops').innerHTML = keys.map((date) => {
+    const items = grouped[date].map((r) => `<div class='msg'>
+      <b>${r.action_type.toUpperCase()}</b> • ${officeBadgeHtml(r.office)} • ${r.assignee_name || 'Unassigned'} ${r.laptop_tag ? `• ${r.laptop_tag}` : ''}
+      <div>${r.notes || ''}</div>
+      <div class='row'>
+        <span class='pill'>${r.status}</span>
+        <button onclick="toggleLaptopComplete(${r.id}, '${r.status}')">${r.status === 'Completed' ? 'Reopen' : 'Complete'}</button>
+        <button onclick="editLaptopTask(${r.id}, '${(r.office || '').replace(/'/g, "&#39;")}', '${(r.action_type || '').replace(/'/g, "&#39;")}', '${(r.due_date || '').replace(/'/g, "&#39;")}', '${(r.assignee_name || '').replace(/'/g, "&#39;")}', '${(r.laptop_tag || '').replace(/'/g, "&#39;")}', '${(r.notes || '').replace(/'/g, "&#39;")}')">Edit</button>
+        <button onclick="deleteLaptopTask(${r.id})">Delete</button>
+      </div>
+    </div>`).join('');
+    return `<div class='ticket'><b>${date}</b>${items}</div>`;
+  }).join('') || `<div class='msg'>No outgoing laptop tasks this month.</div>`;
+}
+async function createLaptopTask() {
+  const due_date = document.getElementById('lapDue').value;
+  if (!due_date) return alert('Pick a due date');
+  await api('/api/laptops', {
+    method: 'POST',
+    body: JSON.stringify({
+      laptop_tag: document.getElementById('lapTag').value.trim(),
+      assignee_name: document.getElementById('lapAssignee').value.trim(),
+      action_type: document.getElementById('lapAction').value,
+      office: (document.getElementById('lapOffice').value || 'New York City').trim(),
+      due_date,
+      notes: document.getElementById('lapNotes').value.trim()
+    })
+  });
+  document.getElementById('lapTag').value = '';
+  document.getElementById('lapAssignee').value = '';
+  document.getElementById('lapNotes').value = '';
+  await loadLaptops();
+  eyeSpeak('OUTGOING LAPTOP TASK LOGGED.');
+}
+async function toggleLaptopComplete(id, status) {
+  await api(`/api/laptops/${id}`, { method: 'PATCH', body: JSON.stringify({ status: status === 'Completed' ? 'Open' : 'Completed' }) });
+  await loadLaptops();
+}
+async function editLaptopTask(id, office, action_type, due_date, assignee_name, laptop_tag, notes) {
+  const newDue = (window.prompt('Due date (YYYY-MM-DD):', due_date || '') || '').trim();
+  if (!newDue) return;
+  const newOfficeRaw = (window.prompt('Office (New York City / San Francisco / Washington DC):', office || 'New York City') || 'New York City').trim();
+  const newOffice = getOfficeMeta(newOfficeRaw).key;
+  const newAction = (window.prompt('Action (send/setup):', action_type || 'send') || 'send').trim().toLowerCase();
+  const newAssignee = (window.prompt('Recipient / setup owner:', assignee_name || '') || '').trim();
+  const newTag = (window.prompt('Laptop tag:', laptop_tag || '') || '').trim();
+  const newNotes = (window.prompt('Notes:', notes || '') || '').trim();
+  await api(`/api/laptops/${id}`, { method: 'PATCH', body: JSON.stringify({ due_date: newDue, office: newOffice, action_type: newAction, assignee_name: newAssignee, laptop_tag: newTag, notes: newNotes }) });
+  await loadLaptops();
+}
+async function deleteLaptopTask(id) {
+  if (!window.confirm('Delete this outgoing laptop task?')) return;
+  await api(`/api/laptops/${id}`, { method: 'DELETE' });
+  await loadLaptops();
+}
 async function updateTicketStatus(id, status) {
   await api(`/api/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   if (status === 'Closed' || status === 'Resolved') {

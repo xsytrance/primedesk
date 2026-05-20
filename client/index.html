@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PrimeDesk</title>
   <link rel="manifest" href="/manifest.json" />
-  <link rel="stylesheet" href="/css/main.css?v=20260520a" />
+  <link rel="stylesheet" href="/css/main.css?v=20260520c" />
 </head>
 <body class="logged-out">
   <header class="topbar">
     <h1>PrimeDesk</h1>
+    <div id="officeStrip" class="office-strip" aria-label="office locations"></div>
     <div class="row" style="gap:12px; width:auto;">
       <div id="notif" class="pill">🔔 0</div>
       <div id="me"></div>
@@ -25,8 +26,8 @@
 
       <label class="sys-label" for="identifier">IDENTIFICATION_KEY</label>
       <select id="identifier" aria-label="username">
-        <option value="egi">egi</option>
-        <option value="patrick">patrick</option>
+        <option value="operator1">operator1</option>
+        <option value="operator2">operator2</option>
       </select>
 
       <label class="sys-label" for="password">ENCRYPTION_PASSCODE</label>
@@ -44,11 +45,12 @@
 
     <section id="app" class="hidden">
       <nav class="tabs">
-        <button onclick="setTab('home')">Home</button>
-        <button onclick="setTab('tickets')">Tickets</button>
-        <button onclick="setTab('chat')">Chat</button>
-        <button onclick="setTab('kb')">KB</button>
-        <button onclick="setTab('xp')">XP</button>
+        <button onclick="setTab('home')">🏙️ Home</button>
+        <button onclick="setTab('tickets')">🗽 Tickets</button>
+        <button onclick="setTab('laptops')">💻 Outgoing Laptops</button>
+        <button onclick="setTab('chat')">🌉 Chat</button>
+        <button onclick="setTab('kb')">🏛️ KB</button>
+        <button onclick="setTab('xp')">⚡ XP</button>
       </nav>
 
       <section id="tab-home" class="card tab"></section>
@@ -69,6 +71,30 @@
           <select id="statusFilter" onchange="loadTickets()"><option value="">All status</option><option>Open</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option></select>
         </div>
         <div id="tickets"></div>
+      </section>
+
+      <section id="tab-laptops" class="card tab hidden">
+        <h2>Outgoing Laptops</h2>
+        <div class="row">
+          <input id="lapTag" placeholder="Laptop tag (optional)" />
+          <input id="lapAssignee" placeholder="Recipient / setup owner" />
+        </div>
+        <div class="row">
+          <select id="lapAction"><option value="send">send</option><option value="setup">setup</option></select>
+          <select id="lapOffice">
+            <option value="New York City" selected>🗽 New York City (Main)</option>
+            <option value="San Francisco">🌉 San Francisco</option>
+            <option value="Washington DC">🏛️ Washington DC</option>
+          </select>
+          <input id="lapDue" type="date" />
+          <button onclick="createLaptopTask()">Add</button>
+        </div>
+        <textarea id="lapNotes" placeholder="Notes"></textarea>
+        <div class="row">
+          <input id="lapMonth" type="month" onchange="loadLaptops()" />
+          <select id="lapStatusFilter" onchange="loadLaptops()"><option value="">All</option><option>Open</option><option>Completed</option></select>
+        </div>
+        <div id="laptops"></div>
       </section>
 
       <section id="tab-chat" class="card tab hidden">
@@ -103,6 +129,6 @@
   <section id="opsFooter" class="ops-footer hidden" aria-live="polite"></section>
 
   <script src="/socket.io/socket.io.js?v=20260519k"></script>
-  <script src="/js/app.js?v=20260520h"></script>
+  <script src="/js/app.js?v=20260520j"></script>
 </body>
 </html>

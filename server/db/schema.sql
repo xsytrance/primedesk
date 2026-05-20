@@ -119,6 +119,23 @@ CREATE TABLE IF NOT EXISTS rotation_log (
   notes TEXT
 );
 
+CREATE TABLE IF NOT EXISTS outgoing_laptops (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  laptop_tag TEXT,
+  assignee_name TEXT,
+  office TEXT NOT NULL CHECK(office IN ('New York City','San Francisco','Washington DC')) DEFAULT 'New York City',
+  action_type TEXT NOT NULL CHECK(action_type IN ('send','setup')) DEFAULT 'send',
+  due_date TEXT NOT NULL,
+  notes TEXT,
+  status TEXT NOT NULL CHECK(status IN ('Open','Completed')) DEFAULT 'Open',
+  completed_at TEXT,
+  created_by INTEGER,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
 CREATE INDEX IF NOT EXISTS idx_tickets_priority ON tickets(priority);
 CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel);
+CREATE INDEX IF NOT EXISTS idx_outgoing_laptops_due_date ON outgoing_laptops(due_date);

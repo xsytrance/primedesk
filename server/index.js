@@ -48,6 +48,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/rotation', require('./routes/rotation'));
 app.use('/api/media', require('./routes/media'));
+app.use('/api/laptops', require('./routes/laptops'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 app.use((_, res) => res.sendFile(path.resolve(__dirname, '../client/index.html')));
@@ -86,7 +87,8 @@ function initDb() {
   const hasAvatarUrl = cols.some(c => c.name === 'avatar_url');
   if (!hasAvatarUrl) db.exec('ALTER TABLE users ADD COLUMN avatar_url TEXT');
 
-  const sharedTemp = bcrypt.hashSync('Desmarais123!', 10);
+  const bootstrapPassword = process.env.BOOTSTRAP_PASSWORD || 'ChangeMeNow!123';
+  const sharedTemp = bcrypt.hashSync(bootstrapPassword, 10);
   const ensureUser = (name, email) => {
     const existing = db.prepare('SELECT id FROM users WHERE lower(name)=? OR lower(email)=?').get(name.toLowerCase(), email.toLowerCase());
     if (existing) {
@@ -98,8 +100,8 @@ function initDb() {
     }
   };
 
-  ensureUser('egi', 'egi@primedesk.local');
-  ensureUser('patrick', 'patrick@primedesk.local');
+  ensureUser('operator1', 'operator1@primedesk.local');
+  ensureUser('operator2', 'operator2@primedesk.local');
 }
 
 initDb();

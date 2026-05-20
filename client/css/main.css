@@ -60,6 +60,15 @@ body.logged-out{
   background:linear-gradient(90deg, rgba(113,18,25,.62), rgba(18,24,36,.8));
 }
 .topbar h1{margin:0;font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+.office-strip{display:flex;gap:6px;align-items:center;justify-content:center;flex:1;padding:0 10px}
+.office-chip{font-size:.72rem;padding:4px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(10,16,24,.65);color:#dbeafe;font-weight:700;letter-spacing:.03em}
+.office-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0 10px}
+.office-panel{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;border:1px solid #2c3954;background:rgba(11,17,25,.72)}
+.office-icon{font-size:1.15rem;line-height:1}
+.office-badge{padding:2px 8px !important;font-size:.75rem}
+.office-nyc{border-color:rgba(120,192,255,.45);background:linear-gradient(180deg, rgba(26,46,74,.78), rgba(13,24,38,.85))}
+.office-sf{border-color:rgba(255,140,94,.45);background:linear-gradient(180deg, rgba(74,39,28,.78), rgba(38,21,13,.85))}
+.office-dc{border-color:rgba(220,186,120,.5);background:linear-gradient(180deg, rgba(68,56,34,.78), rgba(34,28,16,.85))}
 .hero-sub{color:var(--muted);font-size:.9rem;margin:2px 0 8px}
 #me{display:flex;align-items:center;gap:8px}
 .avatar{width:28px;height:28px;border-radius:999px;object-fit:cover;border:1px solid #4d5d81}
@@ -219,7 +228,7 @@ button:hover{filter:brightness(1.08)}
   font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+.tabs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
 .tabs button{
   background:linear-gradient(180deg, #1f2b44, #182238);
   border:1px solid #364566;
@@ -342,6 +351,8 @@ h1,h2,h3{margin:8px 0}
 @media (max-width:780px){
   .row{flex-wrap:wrap}
   .row button{width:100%}
+  .office-strip{display:none}
+  .office-grid{grid-template-columns:1fr}
   .sauron-eye{width:58px;height:58px;right:12px;bottom:86px}
   .ops-footer{padding:7px 10px;gap:8px}
   .ops-footer .ops-lines{font-size:.62rem}
