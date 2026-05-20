@@ -70,12 +70,17 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  html, body, #root {
+    min-height: 100%;
+  }
+
   body {
     @apply bg-bg-base text-text-primary;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   * {

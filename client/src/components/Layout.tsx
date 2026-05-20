@@ -60,7 +60,7 @@ export default function Layout({ children, showTopBar = true }: LayoutProps) {
   };
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden">
+    <div className="relative min-h-[100dvh] overflow-x-hidden overflow-y-visible">
       {/* Layer 1: Base gradient */}
       <div
         className="fixed inset-0 pointer-events-none"

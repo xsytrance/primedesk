@@ -18,13 +18,13 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const VALID_CREDENTIALS: Record<string, string> = {
-  operator1: 'password',
-  operator2: 'password',
+  egi: 'Desmarais123!',
+  patrick: 'Desmarais123!',
 };
 
 const USER_MAP: Record<string, User> = {
-  operator1: operator1,
-  operator2: operator2,
+  egi: { ...operator1, username: 'egi', displayName: 'egi', email: 'egi@primedesk.local' },
+  patrick: { ...operator2, username: 'patrick', displayName: 'patrick', email: 'patrick@primedesk.local' },
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {

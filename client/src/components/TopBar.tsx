@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Sun, Moon, Sunset } from 'lucide-react';
+import { Bell, Sun, Moon, Sunset, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useAuth } from '@/hooks/useAuth.tsx';
 import Avatar from './Avatar';
 import { currentUser, mockNotifications } from '@/data/mock';
 import { timeAgo } from '@/data/mock';
@@ -19,6 +20,7 @@ function getTimeOfDay() {
 export default function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const { theme } = useTheme();
+  const { logout } = useAuth();
   const tod = getTimeOfDay();
   const TimeIcon = tod.icon;
   const unreadCount = mockNotifications.filter(n => !n.read).length;
@@ -48,6 +50,16 @@ export default function TopBar() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          {/* Quick logout */}
+          <button
+            onClick={logout}
+            className="relative w-10 h-10 rounded-xl flex items-center justify-center text-text-secondary hover:bg-bg-surface transition-colors active:scale-95"
+            title="Log Out"
+            aria-label="Log Out"
+          >
+            <LogOut size={20} />
+          </button>
+
           {/* Notification bell */}
           <div className="relative">
             <button

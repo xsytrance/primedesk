@@ -20,7 +20,7 @@ app.set('io', io);
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
-app.use(express.static(path.resolve(__dirname, '../client')));
+app.use(express.static(path.resolve(__dirname, '../client/dist')));
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, path.resolve(__dirname, '../uploads')),
@@ -51,7 +51,7 @@ app.use('/api/media', require('./routes/media'));
 app.use('/api/laptops', require('./routes/laptops'));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
-app.use((_, res) => res.sendFile(path.resolve(__dirname, '../client/index.html')));
+app.use((_, res) => res.sendFile(path.resolve(__dirname, '../client/dist/index.html')));
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
