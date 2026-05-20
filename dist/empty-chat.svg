@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+  <!-- Speech bubble left -->
+  <rect x="60" y="80" width="140" height="80" rx="16" fill="none" stroke="#00d9ff" stroke-width="1.5" opacity="0.4"/>
+  <path d="M 80 160 L 70 190 L 100 160" fill="none" stroke="#00d9ff" stroke-width="1.5" opacity="0.4"/>
+  <!-- Speech bubble right -->
+  <rect x="200" y="100" width="140" height="80" rx="16" fill="none" stroke="#ff4fd8" stroke-width="1.5" opacity="0.4"/>
+  <path d="M 320 180 L 330 210 L 300 180" fill="none" stroke="#ff4fd8" stroke-width="1.5" opacity="0.4"/>
+  <!-- Connecting lines between bubbles -->
+  <line x1="130" y1="140" x2="270" y2="140" stroke="#00d9ff" stroke-width="1" opacity="0.15" stroke-dasharray="4 4"/>
+  <!-- Dots inside left bubble -->
+  <circle cx="110" cy="120" r="4" fill="#00d9ff" opacity="0.3"/>
+  <circle cx="130" cy="120" r="4" fill="#00d9ff" opacity="0.3"/>
+  <circle cx="150" cy="120" r="4" fill="#00d9ff" opacity="0.3"/>
+  <!-- Dots inside right bubble -->
+  <circle cx="250" cy="140" r="4" fill="#ff4fd8" opacity="0.3"/>
+  <circle cx="270" cy="140" r="4" fill="#ff4fd8" opacity="0.3"/>
+  <circle cx="290" cy="140" r="4" fill="#ff4fd8" opacity="0.3"/>
+  <!-- Network nodes -->
+  <circle cx="200" cy="130" r="6" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.3"/>
+  <line x1="200" y1="80" x2="200" y2="60" stroke="#00d9ff" stroke-width="1" opacity="0.15"/>
+  <circle cx="200" cy="55" r="3" fill="#00d9ff" opacity="0.2"/>
+</svg>
