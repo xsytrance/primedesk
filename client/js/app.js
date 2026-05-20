@@ -6,7 +6,10 @@ let activeTicketId = null;
 let notifCount = 0;
 let jamTracks = [];
 let jamIndex = -1;
+let avatarDraftUrl = '';
+let avatarZoom = 1;
 const LOGIN_TELEMETRY_KEY = 'pd_login_telemetry_v1';
+const THEME_STORE_KEY = 'pd_theme_store_v1';
 let eyeLines = [
   'I SEE EVERYTHING.',
   'YOUR QUEUE CONFESSES TO ME.',
@@ -24,13 +27,25 @@ function getRivalName() {
 function refreshEyeLines() {
   const me = user?.name || 'Operator';
   const rival = getRivalName();
+  const meLc = String(me).toLowerCase();
+  const isEgi = meLc.includes('egi');
+  const isPatrick = meLc.includes('patrick');
   eyeLines = [
-    `${me}, I WATCH YOUR OPEN TICKETS.`,
-    `${me}, YOUR SLA CLOCK IS BLEEDING.`,
-    `${rival} IS HUNTING YOUR XP.`,
-    `${me}, I SAW THAT MISSED UPDATE.`,
-    `NOTHING HIDES FROM ME, ${me}.`,
-    `${rival} WILL PASS YOU IF YOU STALL.`
+    `${me}, ONE DOES NOT SIMPLY LET TICKETS ROT IN THE SHIRE.`,
+    `${me}, THE PALANTÍR SEES EVERY STALE UPDATE.`,
+    `EVEN THE SMALLEST TICKET CAN CHANGE THE COURSE OF THE SPRINT.`,
+    `${rival} IS HUNTING YOUR XP. OUTPACE THEM.`,
+    `${me}, KEEP PRIME DESK CLEAN OR SHADOW CLAIMS THE BOARD.`,
+    `ASK BETTER QUESTIONS. CLOSE BETTER TICKETS.`,
+    ...(isEgi ? [
+      `EGI, BE SHARPER THAN PATRICK TODAY. LEAD THE WAR-ROOM.`,
+      `EGI, SHOW YOUR WORK SO PATRICK CAN LEVEL UP FAST.`
+    ] : []),
+    ...(isPatrick ? [
+      `PATRICK, SEEK EGI'S WISDOM. ASK QUESTIONS EARLY, NOT LATE.`,
+      `PATRICK, BRING IDEAS TO PRIME DESK: PROPOSE, TEST, IMPROVE.`,
+      `PATRICK, LEARN THE CRAFT. ASK EGI WHY, NOT JUST WHAT.`
+    ] : [])
   ];
 }
 
@@ -52,6 +67,128 @@ function handleLoginEnter(e) {
 function safeReadTelemetry() {
   try { return JSON.parse(localStorage.getItem(LOGIN_TELEMETRY_KEY) || '{}') || {}; }
   catch { return {}; }
+}
+
+function safeReadThemeStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(THEME_STORE_KEY) || '{}') || {};
+    return {
+      defaults: raw.defaults || null,
+      customs: Array.isArray(raw.customs) ? raw.customs : [],
+      active: raw.active || null
+    };
+  } catch {
+    return { defaults: null, customs: [], active: null };
+  }
+}
+
+function safeWriteThemeStore(data) {
+  localStorage.setItem(THEME_STORE_KEY, JSON.stringify(data));
+}
+
+function ensureDefaultThemeSaved() {
+  const s = safeReadThemeStore();
+  if (s.defaults) return;
+  const style = getComputedStyle(document.documentElement);
+  s.defaults = {
+    id: 'default',
+    tokens: {
+      '--bg': style.getPropertyValue('--bg').trim(),
+      '--panel': style.getPropertyValue('--panel').trim(),
+      '--txt': style.getPropertyValue('--txt').trim(),
+      '--muted': style.getPropertyValue('--muted').trim(),
+      '--line': style.getPropertyValue('--line').trim(),
+      '--atlas-primary': style.getPropertyValue('--atlas-primary').trim(),
+      '--atlas-primary-hover': style.getPropertyValue('--atlas-primary-hover').trim(),
+      '--atlas-blue': style.getPropertyValue('--atlas-blue').trim(),
+      '--ok': style.getPropertyValue('--ok').trim(),
+      '--warn': style.getPropertyValue('--warn').trim(),
+      '--danger': style.getPropertyValue('--danger').trim()
+    }
+  };
+  safeWriteThemeStore(s);
+}
+
+function applyThemeTokens(tokens, scope = 'global') {
+  const target = scope === 'home' ? document.getElementById('tab-home') : document.documentElement;
+  if (!target || !tokens) return;
+  Object.entries(tokens).forEach(([k, v]) => target.style.setProperty(k, v));
+}
+
+function applyActiveThemeFromStore() {
+  ensureDefaultThemeSaved();
+  const s = safeReadThemeStore();
+  if (!s.active?.id) return;
+  const theme = s.active.id === 'default'
+    ? s.defaults
+    : s.customs.find((c) => c.id === s.active.id);
+  if (!theme?.tokens) return;
+  applyThemeTokens(theme.tokens, s.active.scope || 'global');
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function rgbToHex(r, g, b) {
+  return `#${[r, g, b].map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function mix(a, b, t) {
+  const ar = hexToRgb(a); const br = hexToRgb(b);
+  return rgbToHex(ar.r + (br.r - ar.r) * t, ar.g + (br.g - ar.g) * t, ar.b + (br.b - ar.b) * t);
+}
+
+function analyzeAvatarColors(img) {
+  const c = document.createElement('canvas');
+  c.width = 48; c.height = 48;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, 48, 48);
+  const data = ctx.getImageData(0, 0, 48, 48).data;
+  let r = 0; let g = 0; let b = 0; let n = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a < 10) continue;
+    r += data[i]; g += data[i + 1]; b += data[i + 2]; n += 1;
+  }
+  if (!n) return null;
+  const base = rgbToHex(r / n, g / n, b / n);
+  return {
+    base,
+    dark: mix(base, '#05070a', 0.78),
+    panel: mix(base, '#101826', 0.68),
+    line: mix(base, '#22324a', 0.52),
+    accent: mix(base, '#7affd0', 0.35),
+    accentHover: mix(base, '#5ef0bf', 0.45),
+    text: '#e9f4ff',
+    muted: mix(base, '#9fb4cc', 0.62)
+  };
+}
+
+function buildThemeFromPalette(p) {
+  return {
+    '--bg': p.dark,
+    '--panel': p.panel,
+    '--txt': p.text,
+    '--muted': p.muted,
+    '--line': p.line,
+    '--atlas-primary': p.accent,
+    '--atlas-primary-hover': p.accentHover,
+    '--atlas-blue': mix(p.accent, '#4f83ff', 0.45),
+    '--ok': mix(p.accent, '#32d399', 0.35),
+    '--warn': '#f59e0b',
+    '--danger': '#ef4444'
+  };
+}
+
+function saveCustomTheme(tokens, scope, label) {
+  const s = safeReadThemeStore();
+  const id = `${label}-${Date.now()}`;
+  s.customs.unshift({ id, label, tokens, scope, createdAt: new Date().toISOString() });
+  s.active = { id, scope };
+  safeWriteThemeStore(s);
 }
 
 function safeWriteTelemetry(data) {
@@ -109,6 +246,7 @@ function recordLoginTelemetry() {
 }
 
 async function bootstrapSession() {
+  ensureDefaultThemeSaved();
   if (!token) return;
   try {
     const data = await api('/api/auth/me');
@@ -141,10 +279,16 @@ function getXpStatusLine(d) {
 
 function updateEyeContextFromDashboard(d) {
   const me = user?.name || 'Operator';
+  const meLc = String(me).toLowerCase();
+  const isEgi = meLc.includes('egi');
+  const isPatrick = meLc.includes('patrick');
   const lines = [];
-  if (d.p1p2 > 0) lines.push(`ALERT, ${me}: ${d.p1p2} CRITICAL FIRES ARE STILL BURNING.`);
+  if (d.activeLoad > 0) lines.push(`ALERT, ${me}: ${d.activeLoad} ACTIVE TICKETS STILL BURN.`);
   if (d.myOpen >= 5) lines.push(`${me}, YOUR QUEUE IS STACKING AT ${d.myOpen}. MOVE.`);
   if (d.openedToday > d.closedToday) lines.push(`INTAKE OUTPACES CLOSURE. THIS IS HOW BACKLOGS ARE BORN.`);
+  if (isEgi) lines.push('EGI: TEACH, CHALLENGE, AND STAY 2 STEPS AHEAD OF PATRICK.');
+  if (isPatrick) lines.push('PATRICK: ASK EGI MORE QUESTIONS. LEARN, SUGGEST, ITERATE.');
+  if (isPatrick) lines.push('PATRICK: BRING ONE NEW IDEA TO PRIME DESK EACH SESSION.');
   const xpLine = getXpStatusLine(d);
   if (xpLine) lines.push(xpLine);
   maybeContextTaunt(lines);
@@ -201,7 +345,7 @@ async function login() {
 
 function renderMe() {
   const me = document.getElementById('me');
-  const av = user?.avatar_url ? `<img src='${user.avatar_url}' class='avatar'>` : `<span class='avatar ph blank' aria-label='blank avatar'></span>`;
+  const av = user?.avatar_url ? `<img src='${user.avatar_url}' class='avatar avatar-lg'>` : `<span class='avatar ph blank avatar-lg' aria-label='blank avatar'></span>`;
   me.innerHTML = `${av}<span>${user.name} (${user.role}) L${user.level}</span>`;
 }
 
@@ -209,6 +353,7 @@ function startApp() {
   document.body.classList.remove('logged-out');
   document.getElementById('forcePwCard').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
+  applyActiveThemeFromStore();
   renderOpsFooter();
   startEyeMotion();
   if (!socket) {
@@ -238,13 +383,19 @@ async function loadHome() {
     <div class='hero-sub'>War-room telemetry and operator controls</div>
     <div class='kpis'>
       <div class='pill'>My Open: ${d.myOpen}</div><div class='pill'>All Open: ${d.allOpen}</div>
-      <div class='pill ${d.p1p2 > 0 ? 'p1' : 'ok'}'>P1/P2: ${d.p1p2}</div>
+      <div class='pill ${d.activeLoad > 0 ? 'p1' : 'ok'}'>Active Load: ${d.activeLoad}</div>
       <div class='pill'>Opened today: ${d.openedToday}</div><div class='pill'>Closed today: ${d.closedToday}</div>
     </div>
     <div class='home-compact'>
-      <div class='card'>
+      <div class='card avatar-card'>
         <h3>Profile picture</h3>
-        <input id='avatarFile' type='file' accept='image/*' />
+        <div class='avatar-preview-wrap'>
+          <img id='avatarPreview' class='avatar-preview hidden' alt='avatar preview' />
+          <div id='avatarPreviewEmpty' class='avatar-preview-empty'>NO IMAGE LOADED</div>
+        </div>
+        <label class='hero-sub' for='avatarZoom'>Thumbnail scale</label>
+        <input id='avatarZoom' type='range' min='1' max='3' step='0.05' value='1' oninput='updateAvatarPreviewZoom()' />
+        <input id='avatarFile' type='file' accept='image/*' onchange='handleAvatarFileChange(event)' />
         <button onclick='uploadAvatar()'>Upload Avatar</button>
       </div>
       <div class='card'><h3>MSP On Duty</h3><div>${d.msp ? `${d.msp.msp_name} — ${d.msp.contact_info || 'n/a'}` : 'Not set'}</div></div>
@@ -263,6 +414,7 @@ async function loadHome() {
         <audio id='jamPlayer' controls preload='none'></audio>
       </div>
     </div>`;
+  applyActiveThemeFromStore();
   await loadTrack();
 }
 
@@ -308,12 +460,94 @@ function toggleTrack() {
 async function uploadAvatar() {
   const file = document.getElementById('avatarFile').files[0];
   if (!file) return;
-  const fd = new FormData(); fd.append('file', file);
+  const blob = await buildAvatarUploadBlob(file);
+  const fd = new FormData(); fd.append('file', blob, `avatar-${Date.now()}.jpg`);
   const up = await api('/api/upload', { method: 'POST', body: fd });
   await api('/api/users/me/avatar', { method: 'PATCH', body: JSON.stringify({ avatar_url: up.file }) });
   user.avatar_url = up.file;
   renderMe();
   eyeSpeak('YOUR VISAGE IS SAVED.');
+  await maybeOfferAvatarTheme(up.file);
+}
+
+async function maybeOfferAvatarTheme(url) {
+  try {
+    ensureDefaultThemeSaved();
+    const yes = window.confirm('Use your profile image colors to restyle PrimeDesk?');
+    if (!yes) return;
+    const full = window.confirm('Apply to EVERYTHING? (Cancel = main page only)');
+    const scope = full ? 'global' : 'home';
+    const img = await loadImage(url);
+    const palette = analyzeAvatarColors(img);
+    if (!palette) return;
+    const tokens = buildThemeFromPalette(palette);
+    applyThemeTokens(tokens, scope);
+    const save = window.confirm('Save this as a custom theme preset?');
+    if (save) {
+      const label = (window.prompt('Theme name?', `${(user?.name || 'operator')}-avatar`) || '').trim() || `${(user?.name || 'operator')}-avatar`;
+      saveCustomTheme(tokens, scope, label);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function handleAvatarFileChange(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) return;
+  if (avatarDraftUrl) URL.revokeObjectURL(avatarDraftUrl);
+  avatarDraftUrl = URL.createObjectURL(file);
+  const img = document.getElementById('avatarPreview');
+  const empty = document.getElementById('avatarPreviewEmpty');
+  img.src = avatarDraftUrl;
+  img.classList.remove('hidden');
+  empty.classList.add('hidden');
+  updateAvatarPreviewZoom();
+}
+
+function updateAvatarPreviewZoom() {
+  const z = Number(document.getElementById('avatarZoom')?.value || 1);
+  avatarZoom = Math.max(1, Math.min(3, z));
+  const img = document.getElementById('avatarPreview');
+  if (img) img.style.transform = `scale(${avatarZoom})`;
+}
+
+function readImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function buildAvatarUploadBlob(file) {
+  const img = await readImageFromFile(file);
+  const side = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = side;
+  canvas.height = side;
+  const ctx = canvas.getContext('2d');
+  const base = Math.min(img.width, img.height);
+  const crop = base / avatarZoom;
+  const sx = (img.width - crop) / 2;
+  const sy = (img.height - crop) / 2;
+  ctx.drawImage(img, sx, sy, crop, crop, 0, 0, side, side);
+  return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92));
 }
 
 async function loadTickets() {
@@ -321,9 +555,9 @@ async function loadTickets() {
   const status = document.getElementById('statusFilter').value;
   const params = new URLSearchParams(); if (q) params.set('q', q); if (status) params.set('status', status);
   const rows = await api(`/api/tickets?${params.toString()}`);
-  document.getElementById('tickets').innerHTML = rows.map((t) => `<div class='ticket'><div><b>${t.ticket_code || 'TKT-????'} — ${t.title}</b></div><div class='row'><span class='pill ${t.priority.toLowerCase()}'>${t.priority}</span><select onchange="updateTicketStatus(${t.id}, this.value)">${['Open','In Progress','Pending','Resolved','Closed'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select><button onclick="viewTicket(${t.id})">View</button></div><div id='ticket-detail-${t.id}' class='hidden'></div></div>`).join('');
+  document.getElementById('tickets').innerHTML = rows.map((t) => `<div class='ticket'><div><b>${t.ticket_code || 'TKT-????'} — ${t.title}</b></div><div class='row'><span class='pill'>${t.timing || 'later'}</span><span class='pill'>${t.status}</span><select onchange="updateTicketStatus(${t.id}, this.value)">${['Open','In Progress','Pending','Resolved','Closed'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select><button onclick="viewTicket(${t.id})">View</button></div><div id='ticket-detail-${t.id}' class='hidden'></div></div>`).join('');
 }
-async function createTicket() { const title = document.getElementById('title').value.trim(); const priority = document.getElementById('priority').value; if (!title) return; await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title, description: '', priority }) }); document.getElementById('title').value = ''; await loadTickets(); await loadHome(); }
+async function createTicket() { const title = document.getElementById('title').value.trim(); const timing = document.getElementById('timing').value; if (!title) return; await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title, description: '', timing }) }); document.getElementById('title').value = ''; await loadTickets(); await loadHome(); }
 async function updateTicketStatus(id, status) {
   await api(`/api/tickets/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
   if (status === 'Closed' || status === 'Resolved') {
@@ -376,9 +610,23 @@ function startEyeMotion() {
     const x = Math.max(8, Math.min(window.innerWidth - 80, Math.random() * window.innerWidth));
     const y = Math.max(120, Math.min(window.innerHeight - 120, 80 + Math.random() * (window.innerHeight - 220)));
     eye.style.left = `${x}px`; eye.style.top = `${y}px`; eye.style.right = 'auto'; eye.style.bottom = 'auto';
-    bubble.style.left = `${x - 180}px`; bubble.style.top = `${y - 80}px`;
+
+    const bw = bubble.offsetWidth || 240;
+    const bh = bubble.offsetHeight || 48;
+    const margin = 10;
+
+    let bx = x - (bw * 0.72);
+    let by = y - bh - 16;
+
+    if (by < margin) by = y + 74;
+    if (by + bh > window.innerHeight - margin) by = window.innerHeight - bh - margin;
+    if (bx < margin) bx = margin;
+    if (bx + bw > window.innerWidth - margin) bx = window.innerWidth - bw - margin;
+
+    bubble.style.left = `${bx}px`;
+    bubble.style.top = `${by}px`;
   }, 5200);
-  setInterval(() => eyeSpeak(eyeLines[Math.floor(Math.random() * eyeLines.length)]), 14000);
+  setInterval(() => eyeSpeak(eyeLines[Math.floor(Math.random() * eyeLines.length)]), 9000);
 }
 
 if ('serviceWorker' in navigator) {

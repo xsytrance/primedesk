@@ -6,7 +6,7 @@ const roles = require('../middleware/roles');
 const router = express.Router();
 router.use(auth);
 
-const VALID_PRIORITIES = new Set(['P1', 'P2', 'P3', 'P4']);
+const VALID_TIMINGS = new Set(['soon', 'later', 'whenever']);
 const VALID_STATUS = new Set(['Open', 'In Progress', 'Pending', 'Resolved', 'Closed']);
 
 function addActivity(ticketId, userId, action, oldValue, newValue) {
@@ -15,12 +15,11 @@ function addActivity(ticketId, userId, action, oldValue, newValue) {
 }
 
 router.get('/', (req, res) => {
-  const { status, priority, assignee_id, category, q } = req.query;
+  const { status, assignee_id, category, q } = req.query;
   const where = [];
   const params = [];
 
   if (status) { where.push('t.status = ?'); params.push(status); }
-  if (priority) { where.push('t.priority = ?'); params.push(priority); }
   if (assignee_id) { where.push('t.assignee_id = ?'); params.push(Number(assignee_id)); }
   if (category) { where.push('t.category = ?'); params.push(category); }
   if (q) {
@@ -34,9 +33,9 @@ router.get('/', (req, res) => {
                LEFT JOIN users u ON u.id=t.assignee_id
                LEFT JOIN users c ON c.id=t.created_by
                ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-               ORDER BY CASE t.priority WHEN 'P1' THEN 1 WHEN 'P2' THEN 2 WHEN 'P3' THEN 3 ELSE 4 END, t.updated_at DESC`;
+               ORDER BY t.updated_at DESC`;
 
-  const rows = db.prepare(sql).all(...params).map((r) => ({ ...r, tags: JSON.parse(r.tags || '[]') }));
+  const rows = db.prepare(sql).all(...params).map((r) => ({ ...r, timing: r.priority || 'later', tags: JSON.parse(r.tags || '[]') }));
   res.json(rows);
 });
 
@@ -45,14 +44,14 @@ router.get('/:id', (req, res) => {
   if (!t) return res.status(404).json({ error: 'Not found' });
   const comments = db.prepare('SELECT tc.*, u.name user_name FROM ticket_comments tc JOIN users u ON u.id=tc.user_id WHERE ticket_id=? ORDER BY tc.created_at ASC').all(req.params.id);
   const activity = db.prepare('SELECT ta.*, u.name user_name FROM ticket_activity ta LEFT JOIN users u ON u.id=ta.user_id WHERE ticket_id=? ORDER BY ta.created_at DESC LIMIT 200').all(req.params.id);
-  res.json({ ...t, tags: JSON.parse(t.tags || '[]'), comments, activity });
+  res.json({ ...t, timing: t.priority || 'later', tags: JSON.parse(t.tags || '[]'), comments, activity });
 });
 
 router.post('/', roles('admin', 'senior_admin', 'msp'), (req, res) => {
   const {
     title,
     description = '',
-    priority = 'P3',
+    timing = 'later',
     category = 'Other',
     assignee_id = null,
     requester_name = '',
@@ -61,21 +60,20 @@ router.post('/', roles('admin', 'senior_admin', 'msp'), (req, res) => {
   } = req.body;
 
   if (!title || !title.trim()) return res.status(400).json({ error: 'Title required' });
-  if (!VALID_PRIORITIES.has(priority)) return res.status(400).json({ error: 'Invalid priority' });
-
+  if (!VALID_TIMINGS.has(String(timing))) return res.status(400).json({ error: 'Invalid timing' });
   const dupe = db.prepare(`SELECT id, ticket_code, title FROM tickets WHERE status IN ('Open','In Progress','Pending') AND title LIKE ? ORDER BY updated_at DESC LIMIT 3`).all(`%${title.trim().slice(0, 20)}%`);
 
   const now = new Date().toISOString();
   const result = db.prepare(`INSERT INTO tickets (title, description, priority, category, status, assignee_id, requester_name, due_date, tags, created_by, created_at, updated_at)
     VALUES (?, ?, ?, ?, 'Open', ?, ?, ?, ?, ?, ?, ?)`)
-    .run(title.trim(), description, priority, category, assignee_id, requester_name, due_date, JSON.stringify(tags), req.user.id, now, now);
+    .run(title.trim(), description, timing, category, assignee_id, requester_name, due_date, JSON.stringify(tags), req.user.id, now, now);
 
   const id = result.lastInsertRowid;
   const code = `TKT-${String(id).padStart(4, '0')}`;
   db.prepare('UPDATE tickets SET ticket_code=? WHERE id=?').run(code, id);
 
   addActivity(id, req.user.id, 'created', null, `Ticket ${code} created`);
-  req.app.get('io').to('general').emit('ticket:new', { id, ticket_code: code, title: title.trim(), priority, status: 'Open' });
+  req.app.get('io').to('general').emit('ticket:new', { id, ticket_code: code, title: title.trim(), status: 'Open' });
 
   db.prepare('INSERT INTO xp_events (user_id, action_type, xp_amount, related_id) VALUES (?, ?, ?, ?)').run(req.user.id, 'create_ticket', 5, id);
   db.prepare('UPDATE users SET xp = xp + 5 WHERE id=?').run(req.user.id);
@@ -89,11 +87,10 @@ router.patch('/:id', roles('admin', 'senior_admin', 'msp'), (req, res) => {
 
   const updates = [];
   const params = [];
-  const allowed = ['title', 'description', 'priority', 'category', 'status', 'assignee_id', 'requester_name', 'due_date', 'linked_kb_id'];
+  const allowed = ['title', 'description', 'category', 'status', 'assignee_id', 'requester_name', 'due_date', 'linked_kb_id'];
 
   for (const k of allowed) {
     if (Object.prototype.hasOwnProperty.call(req.body, k)) {
-      if (k === 'priority' && !VALID_PRIORITIES.has(req.body[k])) return res.status(400).json({ error: 'Invalid priority' });
       if (k === 'status' && !VALID_STATUS.has(req.body[k])) return res.status(400).json({ error: 'Invalid status' });
       updates.push(`${k}=?`);
       params.push(req.body[k]);

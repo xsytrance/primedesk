@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   ticket_code TEXT UNIQUE,
   title TEXT NOT NULL,
   description TEXT,
-  priority TEXT CHECK(priority IN ('P1','P2','P3','P4')) DEFAULT 'P3',
+  priority TEXT CHECK(priority IN ('soon','later','whenever')) DEFAULT 'later',
   category TEXT DEFAULT 'Other',
   status TEXT CHECK(status IN ('Open','In Progress','Pending','Resolved','Closed')) DEFAULT 'Open',
   assignee_id INTEGER,

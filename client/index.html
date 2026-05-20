@@ -57,7 +57,11 @@
         <h2>Tickets</h2>
         <div class="row">
           <input id="title" placeholder="Ticket title" />
-          <select id="priority"><option>P1</option><option>P2</option><option selected>P3</option><option>P4</option></select>
+          <select id="timing">
+            <option>soon</option>
+            <option selected>later</option>
+            <option>whenever</option>
+          </select>
           <button onclick="createTicket()">Create</button>
         </div>
         <div class="row">
@@ -99,6 +103,6 @@
   <section id="opsFooter" class="ops-footer hidden" aria-live="polite"></section>
 
   <script src="/socket.io/socket.io.js?v=20260519k"></script>
-  <script src="/js/app.js?v=20260520c"></script>
+  <script src="/js/app.js?v=20260520h"></script>
 </body>
 </html>
