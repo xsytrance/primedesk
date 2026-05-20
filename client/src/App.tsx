@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/hooks/useAuth.tsx';
+import { ThemeProvider } from '@/hooks/useTheme';
 import Layout from '@/components/Layout';
 import Dashboard from '@/pages/Dashboard';
 import Tickets from '@/pages/Tickets';
@@ -56,7 +57,9 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <ThemeProvider>
+        <AppRoutes />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { useTheme } from '@/hooks/useTheme';
 import { Toaster } from '@/components/ui/sonner';
 import BottomNav from './BottomNav';
 import TopBar from './TopBar';
@@ -8,6 +9,56 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, showTopBar = true }: LayoutProps) {
+  const { theme } = useTheme();
+
+  const getPattern = () => {
+    switch (theme.effects.patternType) {
+      case 'web':
+        return (
+          <>
+            <div
+              className="fixed inset-0 pointer-events-none opacity-30"
+              style={{
+                backgroundImage: `linear-gradient(var(--theme-primary) 1px, transparent 1px), linear-gradient(90deg, var(--theme-primary) 1px, transparent 1px), linear-gradient(45deg, var(--theme-primary) 0.5px, transparent 0.5px)`,
+                backgroundSize: '60px 60px, 60px 60px, 84px 84px',
+                opacity: 0.03,
+              }}
+            />
+            <div
+              className="fixed inset-0 pointer-events-none opacity-20"
+              style={{
+                backgroundImage: `linear-gradient(-45deg, var(--theme-primary) 0.5px, transparent 0.5px)`,
+                backgroundSize: '84px 84px',
+                opacity: 0.02,
+              }}
+            />
+          </>
+        );
+      case 'dots':
+        return (
+          <div
+            className="fixed inset-0 pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(var(--theme-primary) 1px, transparent 0)',
+              backgroundSize: '14px 14px',
+              opacity: 0.04,
+            }}
+          />
+        );
+      default:
+        return (
+          <div
+            className="fixed inset-0 pointer-events-none"
+            style={{
+              backgroundImage: `linear-gradient(var(--theme-primary) 1px, transparent 1px), linear-gradient(90deg, var(--theme-primary) 1px, transparent 1px)`,
+              backgroundSize: '60px 60px',
+              opacity: 0.03,
+            }}
+          />
+        );
+    }
+  };
+
   return (
     <div className="relative min-h-[100dvh] overflow-hidden">
       {/* Layer 1: Base gradient */}
@@ -16,28 +67,22 @@ export default function Layout({ children, showTopBar = true }: LayoutProps) {
         style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%)' }}
       />
 
-      {/* Layer 2: Blurred color blobs */}
+      {/* Layer 2: Blurred color blobs — theme-aware */}
       <div
         className="fixed inset-0 pointer-events-none animate-drift"
         style={{
-          background: 'radial-gradient(600px circle at 20% 30%, rgba(0,217,255,0.08), transparent)',
+          background: 'radial-gradient(600px circle at 20% 30%, var(--theme-blob-1), transparent)',
         }}
       />
       <div
         className="fixed inset-0 pointer-events-none animate-drift-reverse"
         style={{
-          background: 'radial-gradient(500px circle at 80% 70%, rgba(255,79,216,0.06), transparent)',
+          background: 'radial-gradient(500px circle at 80% 70%, var(--theme-blob-2), transparent)',
         }}
       />
 
-      {/* Layer 3: Tactical grid */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-40"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(0,217,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,217,255,0.03) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
-        }}
-      />
+      {/* Layer 3: Pattern — theme-aware */}
+      {getPattern()}
 
       {/* Layer 4: Noise + scanlines */}
       <div

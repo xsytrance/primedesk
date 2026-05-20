@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { operator1, operator2 } from '@/data/mock';
 import type { User } from '@/data/mock';
 
+
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
